@@ -9,8 +9,6 @@
 
 struct winfo init_display()
 {
-	// variables
-	int cols, rows;
 	struct winfo wins;
 
 	// Init functions
@@ -20,7 +18,10 @@ struct winfo init_display()
 	noecho();
 
 	// initializing variables
-	getmaxyx(stdscr, rows, cols);
+	getmaxyx(stdscr, wins.rows, wins.cols);
+	// tmp vars for readability
+	int cols = wins.cols;
+	int rows = wins.rows;
 
 	// windows
 	wins.nav = newwin(rows, cols/5, 0, 0);
@@ -94,4 +95,26 @@ int stop_display(struct winfo wins)
 	delwin(wins.display);
 	delwin(wins.input);
 	endwin();
+}
+
+int mktab(struct winfo *wins, char *tbname)
+{
+	// Add tbname to nav bar and to *tabs[] in winfo wins
+	int i;
+	for (i = 0; wins->tabs[i] != NULL; i++) {	}
+
+	wins->tabs[i] = malloc(sizeof(char) * sizeof(tbname) + 2);
+
+	wins->tabs[i][0] = (i + '0' + 1);
+	wins->tabs[i][1] = ' ';
+	strncpy(&wins->tabs[i][2], tbname, strlen(tbname));
+
+	mvwprintw(wins->nav, ++wins->ny, 2,
+			"%s", wins->tabs[i]);
+	wrefresh(wins->nav);
+
+	int rows = wins->rows;
+	int cols = wins->cols;
+	// using same index, create a window and add it to tbwins in wins
+	wins->tbwins[i] = newwin(rows-2, 4*cols/5, 0, cols/5);
 }

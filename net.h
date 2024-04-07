@@ -10,5 +10,6 @@ struct fds {
 
 struct winfo;
 
+int get_serverfd(struct winfo *wins);
 int handle_io(int sfd, fd_set master);
 int get_conn(struct winfo *wins, char *hostname, char *port);

@@ -9,14 +9,6 @@
 #include "net.h"
 #include "display.h"
 
-#define FDISPLAY(x, y) \
-mvwprintw(wins->display, ++wins->dy, 1, x, y); \
-wrefresh(wins->display);
-
-#define DISPLAY(x) \
-mvwprintw(wins->display, ++wins->dy, 1, x); \
-wrefresh(wins->display);
-
 int handle_io(int sfd, fd_set master)
 {
 	char read[4096];
@@ -97,6 +89,63 @@ int get_conn(struct winfo *wins, char *hostname, char *port)
 								NI_NUMERICHOST);
 	FDISPLAY("Connected to server at %s.", info);
 	wrefresh(wins->display);
+
+	freeaddrinfo(res);
+	return sfd;
+}
+
+int get_serverfd(struct winfo *wins)
+{
+	struct addrinfo hints, *res, *itr;
+	int sfd, rv;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
+
+	rv = getaddrinfo(NULL, "0", &hints, &res);
+	if (rv) {
+		FDISPLAY("getaddrinfo failed: %s", gai_strerror(rv));
+		return -1;
+	}
+
+	for (itr = res; itr != NULL; itr = itr->ai_next) {
+		sfd = socket(itr->ai_family, itr->ai_socktype,
+							itr->ai_protocol);
+
+		if (sfd == -1) {
+			DISPLAY("Socket creation failed...");
+			continue;
+		}
+
+
+		if (bind(sfd, itr->ai_addr,
+						itr->ai_addrlen) != -1) {
+			DISPLAY("Bind success.");
+
+			break; // success
+		}
+
+		// failure
+		close(sfd);
+	}
+
+	if (itr == NULL) {
+		DISPLAY("Failed to create connection.");
+		return -1;
+	}
+
+	rv = listen(sfd, 10);
+	if (rv == -1) {
+		DISPLAY("Failed to listen");
+	}
+
+	struct sockaddr info;
+	int tmp = sizeof(info);
+	getsockname(sfd, &info, &tmp);
+	FDISPLAY("Bound to port %d.",
+		ntohs(((struct sockaddr_in *)&info)->sin_port));
 
 	freeaddrinfo(res);
 	return sfd;
